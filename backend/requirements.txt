@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pymupdf
+anthropic
+tavily-python
+python-dotenv
+python-multipart
