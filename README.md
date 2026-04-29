@@ -9,7 +9,7 @@
 
 | Service | URL |
 |---------|-----|
-| Frontend (Vercel) | `https://your-app.vercel.app` *(replace with your live URL)* |
+| Frontend (Vercel) | `https://fact-check-application.vercel.app/` |
 | Backend (Render)  | `https://fact-check-app-xwxl.onrender.com` |
 
 ---
@@ -142,7 +142,7 @@ Frontend runs at → http://localhost:5173
 4. Build command: `pip install -r requirements.txt`
 5. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 6. Add env vars: `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`
-7. (Recommended) Add `CORS_ORIGINS=https://your-frontend.vercel.app`
+7. (Recommended) Add `CORS_ORIGINS=https://fact-check-application.vercel.app/`
 8. Deploy — note the URL (e.g. `https://factcheck-backend.onrender.com`)
 
 ### Frontend → Vercel
