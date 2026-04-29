@@ -9,8 +9,8 @@
 
 | Service | URL |
 |---------|-----|
-| Frontend (Vercel) | `https://your-app.vercel.app` |
-| Backend (Render)  | `https://your-backend.onrender.com` |
+| Frontend (Vercel) | `https://your-app.vercel.app` *(replace with your live URL)* |
+| Backend (Render)  | `https://fact-check-app-xwxl.onrender.com` |
 
 ---
 
@@ -98,7 +98,7 @@ factcheck-app/
 
 ### 1. Clone
 ```bash
-git clone git clone https://github.com/lunarpixie9/fact-check-app.git
+git clone https://github.com/lunarpixie9/fact-check-app.git
 cd factcheck-app
 ```
 
@@ -142,16 +142,17 @@ Frontend runs at → http://localhost:5173
 4. Build command: `pip install -r requirements.txt`
 5. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 6. Add env vars: `ANTHROPIC_API_KEY`, `TAVILY_API_KEY`
-7. Deploy — note the URL (e.g. `https://factcheck-backend.onrender.com`)
+7. (Recommended) Add `CORS_ORIGINS=https://your-frontend.vercel.app`
+8. Deploy — note the URL (e.g. `https://factcheck-backend.onrender.com`)
 
 ### Frontend → Vercel
 
 1. Go to https://vercel.com → New Project
 2. Import your GitHub repo, set **Root Directory** to `frontend`
-3. Add env var: `VITE_API_URL=https://factcheck-backend.onrender.com`
+3. Add env var: `VITE_API_URL=https://fact-check-app-xwxl.onrender.com`
 4. Deploy
 
->  After deploying the backend, update `vercel.json` with your real Render URL and re-deploy the frontend.
+>  After deploying the backend, update frontend env var `VITE_API_URL` to your real Render URL and re-deploy the frontend.
 
 ---
 

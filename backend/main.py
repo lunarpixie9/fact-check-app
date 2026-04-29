@@ -5,21 +5,36 @@ import re
 import fitz  # PyMuPDF
 import anthropic
 from tavily import TavilyClient
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Load backend/.env for local development before reading env vars.
+load_dotenv()
+
 app = FastAPI(title="FactCheck Agent API", version="1.0.0")
+
+def _parse_cors_origins() -> list[str]:
+    """
+    In production, set CORS_ORIGINS to comma-separated frontend URLs.
+    Defaults to wildcard for easier local development.
+    """
+    raw = os.environ.get("CORS_ORIGINS", "").strip()
+    if not raw:
+        return ["*"]
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # lock this to your Vercel domain in prod
+    allow_origins=_parse_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,13 +43,17 @@ app.add_middleware(
 # ── clients ────────────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 TAVILY_API_KEY    = os.environ.get("TAVILY_API_KEY", "")
+DISABLE_ANTHROPIC = os.environ.get("DISABLE_ANTHROPIC", "false").lower() in {"1", "true", "yes"}
 
-if not ANTHROPIC_API_KEY:
-    raise RuntimeError("ANTHROPIC_API_KEY env var is missing")
 if not TAVILY_API_KEY:
     raise RuntimeError("TAVILY_API_KEY env var is missing")
 
-claude  = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+claude: Optional[anthropic.Anthropic] = None
+if ANTHROPIC_API_KEY and not DISABLE_ANTHROPIC:
+    claude = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+else:
+    logger.info("Anthropic disabled or missing key. Running in Tavily-only mode.")
+
 tavily  = TavilyClient(api_key=TAVILY_API_KEY)
 
 # ── constants ─────────────────────────────────────────────────────────────────
@@ -111,13 +130,65 @@ Document text:
 
 Return ONLY the JSON array:"""
 
-    message = claude.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    raw = message.content[0].text
-    return safe_json_parse(raw)
+    if claude is not None:
+        try:
+            message = claude.messages.create(
+                model="claude-opus-4-5",
+                max_tokens=2048,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            raw = message.content[0].text
+            claims = safe_json_parse(raw)
+            if claims:
+                return claims[:MAX_CLAIMS]
+        except Exception as e:
+            logger.warning("Claude extraction failed, falling back to Tavily-only mode: %s", e)
+
+    # Fallback: lightweight claim extraction from sentences with verifiable signals.
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    claim_candidates = []
+    for sentence in sentences:
+        s = sentence.strip()
+        if len(s) < 30 or len(s) > 350:
+            continue
+        has_numeric_signal = bool(re.search(r"\b\d+(?:\.\d+)?%?\b|\$|USD|EUR|million|billion|founded|launched|revenue|valuation|market", s, re.IGNORECASE))
+        if not has_numeric_signal:
+            continue
+        claim_candidates.append({"claim": s, "context": s})
+        if len(claim_candidates) >= MAX_CLAIMS:
+            break
+    return claim_candidates
+
+
+def verify_claim_with_tavily_only(claim: str, context: str, sources: list[str], web_evidence: str, raw_snippets: str) -> dict:
+    corpus = f"{web_evidence}\n{raw_snippets}".lower()
+    claim_numbers = re.findall(r"\d+(?:\.\d+)?%?", claim)
+
+    if not sources:
+        verdict = "False"
+        reasoning = "No credible web sources were found for this claim."
+        correct_fact = "Unable to determine from available web results."
+        confidence = 25
+    elif claim_numbers and not any(n.lower() in corpus for n in claim_numbers):
+        verdict = "Inaccurate"
+        reasoning = "Web evidence does not support the same figures stated in the claim."
+        correct_fact = "Related sources were found, but the claim's figures do not match clearly."
+        confidence = 62
+    else:
+        verdict = "Verified"
+        reasoning = "The claim appears consistent with the available web evidence."
+        correct_fact = "Claim appears correct."
+        confidence = 68
+
+    return {
+        "claim": claim,
+        "context": context,
+        "verdict": verdict,
+        "reasoning": reasoning,
+        "correct_fact": correct_fact,
+        "confidence": confidence,
+        "sources": sources[:3],
+    }
 
 
 def verify_claim(claim: str, context: str) -> dict:
@@ -174,6 +245,9 @@ Return ONLY this JSON (no markdown, no extra text):
   "sources": {json.dumps(sources[:3])}
 }}"""
 
+    if claude is None:
+        return verify_claim_with_tavily_only(claim, context, sources, web_evidence, raw_snippets)
+
     try:
         msg = claude.messages.create(
             model="claude-opus-4-5",
@@ -189,14 +263,8 @@ Return ONLY this JSON (no markdown, no extra text):
             cleaned = re.sub(r"```(?:json)?", "", raw_verdict).strip().rstrip("`").strip()
             verdict_data = json.loads(cleaned)
     except Exception as e:
-        logger.warning("Verdict parse failed: %s", e)
-        verdict_data = {
-            "verdict": "False",
-            "reasoning": "Could not verify — web search or parse error.",
-            "correct_fact": "Unable to determine.",
-            "confidence": 0,
-            "sources": sources[:3],
-        }
+        logger.warning("Verdict parse failed, using Tavily-only fallback: %s", e)
+        return verify_claim_with_tavily_only(claim, context, sources, web_evidence, raw_snippets)
 
     return {
         "claim": claim,

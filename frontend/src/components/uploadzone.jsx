@@ -28,140 +28,76 @@ export default function UploadZone({ onFile }) {
   }
 
   return (
-    <div style={{ paddingTop: 48, animation: 'fadeUp 0.5s ease 0.15s both', opacity: 0 }}>
+    <>
+      <section className="hero">
+        <div>
+          <h1>Verify marketing claims before they spread.</h1>
+          <p>
+            Upload a PDF and get a structured fact-check report with claim-level verdicts,
+            reasoning, and source links from live web evidence.
+          </p>
+        </div>
+        <div className="hero-side">
+          <strong className="hero-side-title">What this checks</strong>
+          <p className="muted" style={{ marginTop: 16 }}>
+            Statistics, financial numbers, dates, product assertions, and technical claims.
+          </p>
+          <p className="muted" style={{ marginTop: 12 }}>
+            Verdicts: Verified, Inaccurate, or False.
+          </p>
+        </div>
+      </section>
 
-      {/* hero text */}
-      <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <h2 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(28px, 5vw, 48px)',
-          fontWeight: 800,
-          letterSpacing: '-0.03em',
-          lineHeight: 1.1,
-          marginBottom: 16,
-          background: 'linear-gradient(135deg, var(--text) 40%, var(--accent2))',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-        }}>
-          Upload. Verify. Expose.
-        </h2>
-        <p style={{
-          color: 'var(--text-dim)',
-          maxWidth: 480,
-          margin: '0 auto',
-          fontSize: 16,
-          lineHeight: 1.7,
-        }}>
-          Drop any PDF and our AI agent will extract every factual claim,
-          cross-reference it against live web data, and flag what's wrong.
+      <section className="section-card">
+        <h2 style={{ marginTop: 0, marginBottom: 8 }}>Upload PDF</h2>
+        <p className="muted" style={{ marginTop: 0, marginBottom: 16 }}>
+          Drag and drop your file or choose from disk. Maximum size: {MAX_MB}MB.
         </p>
-      </div>
 
-      {/* drop zone */}
-      <div
-        onClick={() => inputRef.current.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-        style={{
-          border: `2px dashed ${dragging ? 'var(--accent)' : 'var(--border2)'}`,
-          borderRadius: 20,
-          padding: '64px 40px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          background: dragging
-            ? 'rgba(108,99,255,0.06)'
-            : 'var(--surface)',
-          transition: 'all 0.2s ease',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* glow when dragging */}
-        {dragging && (
+        <div
+          className={`upload-dropzone ${dragging ? 'dragging' : ''}`}
+          onClick={() => inputRef.current.click()}
+          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+        >
+          <p style={{ margin: 0, fontWeight: 600 }}>
+            {dragging ? 'Drop file to start analysis' : 'Drag and drop PDF here'}
+          </p>
+          <p className="muted" style={{ margin: '6px 0 0' }}>
+            or click to browse files
+          </p>
+
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".pdf"
+            style={{ display: 'none' }}
+            onChange={(e) => submit(e.target.files[0])}
+          />
+        </div>
+
+        {localError && (
           <div style={{
-            position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse at center, rgba(108,99,255,0.12), transparent 70%)',
-            pointerEvents: 'none',
-          }} />
+            marginTop: 14,
+            padding: '10px 12px',
+            borderRadius: 10,
+            border: '1px solid var(--false)',
+            color: 'var(--false)',
+            background: 'var(--false-bg)',
+            fontSize: 13,
+          }}>
+            {localError}
+          </div>
         )}
 
-        <div style={{
-          fontSize: 48,
-          marginBottom: 16,
-          filter: dragging ? 'none' : 'grayscale(0.3)',
-          transition: 'filter 0.2s',
-        }}>📄</div>
-
-        <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 18,
-          fontWeight: 700,
-          color: dragging ? 'var(--accent2)' : 'var(--text)',
-          marginBottom: 8,
-          transition: 'color 0.2s',
-        }}>
-          {dragging ? 'Drop it!' : 'Drag & drop your PDF here'}
-        </p>
-        <p style={{ color: 'var(--text-dim)', fontSize: 14 }}>
-          or <span style={{ color: 'var(--accent2)', textDecoration: 'underline' }}>browse files</span>
-          &nbsp;· Max {MAX_MB}MB
-        </p>
-
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf"
-          style={{ display: 'none' }}
-          onChange={(e) => submit(e.target.files[0])}
-        />
-      </div>
-
-      {localError && (
-        <div style={{
-          marginTop: 16,
-          padding: '12px 16px',
-          borderRadius: 8,
-          background: 'var(--red-bg)',
-          border: '1px solid var(--red-border)',
-          color: 'var(--red)',
-          fontSize: 14,
-          fontFamily: 'var(--font-mono)',
-          textAlign: 'center',
-        }}>
-          ⚠ {localError}
+        <div className="feature-grid">
+          <div className="feature-item">Market and usage statistics</div>
+          <div className="feature-item">Dates and historical references</div>
+          <div className="feature-item">Revenue and valuation claims</div>
+          <div className="feature-item">Technical and product statements</div>
         </div>
-      )}
-
-      {/* what we check */}
-      <div style={{
-        marginTop: 48,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 16,
-      }}>
-        {[
-          { icon: '📊', label: 'Statistics & Percentages' },
-          { icon: '📅', label: 'Dates & Historical Events' },
-          { icon: '💰', label: 'Financial Figures' },
-          { icon: '🔬', label: 'Technical Claims' },
-        ].map(({ icon, label }) => (
-          <div key={label} style={{
-            padding: '16px 20px',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}>
-            <span style={{ fontSize: 22 }}>{icon}</span>
-            <span style={{ color: 'var(--text-dim)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+      </section>
+    </>
   )
 }

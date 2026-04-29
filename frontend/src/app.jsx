@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef } from 'react'
-import UploadZone from './components/UploadZone.jsx'
-import ProgressPanel from './components/ProgressPanel.jsx'
-import ResultsPanel from './components/ResultsPanel.jsx'
-import Header from './components/Header.jsx'
+import UploadZone from './components/uploadzone.jsx'
+import ProgressPanel from './components/progresspanel.jsx'
+import ResultsPanel from './components/resultspanel.jsx'
+import Header from './components/header.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -118,16 +118,10 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="app-shell">
       <Header />
 
-      <main style={{
-        flex: 1,
-        maxWidth: 900,
-        width: '100%',
-        margin: '0 auto',
-        padding: '0 24px 80px',
-      }}>
+      <main className="container" style={{ paddingTop: 0, paddingBottom: 40 }}>
         {phase === 'idle' && <UploadZone onFile={handleFile} />}
 
         {(phase === 'checking' || phase === 'error') && (

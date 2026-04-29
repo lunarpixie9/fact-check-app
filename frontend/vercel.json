@@ -4,6 +4,6 @@
   "framework": "vite",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "env": {
-    "VITE_API_URL": "https://your-backend.onrender.com"
+    "VITE_API_URL": "https://fact-check-app-xwxl.onrender.com"
   }
 }
